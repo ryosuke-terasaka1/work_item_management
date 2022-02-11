@@ -4,7 +4,7 @@ import requests
 import json
 import pandas as pd
 
-page = st.sidebar.selectbox('Choose your page', ['create_users', 'update_users', 'create_rooms', 'update_rooms', 'bookings'])
+page = st.sidebar.selectbox('Choose your page', ['create_users', 'update_users', 'create_items', 'update_items'])
 
 if page == 'create_users':
     st.title('ユーザー登録画面')
@@ -27,176 +27,44 @@ if page == 'create_users':
             st.success('ユーザー登録完了')
         st.json(res.json())
 
-elif page == 'update_rooms':
-    url_rooms = 'http://127.0.0.1:8000/rooms'
-    # url_rooms = 'https://ghuuab.deta.dev/rooms'
-    res = requests.get(url_rooms)
-    rooms = res.json()
-    rooms_name = {}
-    for room in rooms:
-        rooms_name[room['room_name']] = {
-            'room_id': room['room_id'],
-            'capacity': room['capacity']
+elif page == 'update_items':
+    url_items = 'http://127.0.0.1:8000/items'
+    # url_items = 'https://ghuuab.deta.dev/items'
+    res = requests.get(url_items)
+    items = res.json()
+    items_name = {}
+    for item in items:
+        items_name[item['item_name']] = {
+            'item_id': item['item_id'],
+            'capacity': item['capacity']
         }
     
-    st.write('### 会議室一覧')
-    df_rooms = pd.DataFrame(rooms)
-    df_rooms.columns = ['会議室名', '定員', '会議室ID']
-    df_rooms['アップデート'] = st.button('update')
-    st.table(df_rooms)
+    st.write('### 商品一覧')
+    df_items = pd.DataFrame(items)
+    df_items.columns = ['商品名', '定員', '商品ID']
+    df_items['アップデート'] = st.button('update')
+    st.table(df_items)
 
-elif page == 'create_rooms':
-    st.title('会議室登録画面')
+elif page == 'create_items':
+    st.title('商品登録画面')
 
-    with st.form(key='room'):
-        # room_id: int = random.randint(0, 10)
-        room_name: str = st.text_input('会議室名', max_chars=12)
-        capacity: int = st.number_input('定員', step=1)
+    with st.form(key='item'):
+        # item_id: int = random.randint(0, 10)
+        item_name: str = st.text_input('商品名', max_chars=12)
+        created_date: datetime.datetime = st.number_input('作成日', step=1)
         data = {
-            # 'room_id': room_id,
-            'room_name': room_name,
-            'capacity': capacity
+            # 'item_id': item_id,
+            'item_name': item_name,
+            'created_date': created_date
         }
-        submit_button = st.form_submit_button(label='会議室登録')
+        submit_button = st.form_submit_button(label='商品登録')
 
     if submit_button:
-        url = 'http://127.0.0.1:8000/rooms'
+        url = 'http://127.0.0.1:8000/items'
         res = requests.post(
             url,
             data=json.dumps(data)
         )
         if res.status_code == 200:
-            st.success('会議室登録完了')
+            st.success('商品登録完了')
         st.json(res.json())
-
-elif page == 'bookings':
-    st.title('会議室予約画面')
-    # ユーザー一覧取得
-    url_users = 'http://127.0.0.1:8000/users'
-    # url_users = 'https://ghuuab.deta.dev/users'
-    res = requests.get(url_users)
-    users = res.json()
-    if users is None:
-        st.write('ユーザーが存在しません')
-    # ユーザー名をキー、ユーザーIDをバリュー
-    users_name = {}
-    for user in users:
-        users_name[user['username']] = user['user_id']
-
-    # 会議室一覧の取得
-    url_rooms = 'http://127.0.0.1:8000/rooms'
-    # url_rooms = 'https://ghuuab.deta.dev/rooms'
-    res = requests.get(url_rooms)
-    rooms = res.json()
-    rooms_name = {}
-    for room in rooms:
-        rooms_name[room['room_name']] = {
-            'room_id': room['room_id'],
-            'capacity': room['capacity']
-        }
-
-    st.write('### 会議室一覧')
-    df_rooms = pd.DataFrame(rooms)
-    df_rooms.columns = ['会議室名', '定員', '会議室ID']
-    st.table(df_rooms)
-
-    url_bookings = 'http://127.0.0.1:8000/bookings'
-    # url_bookings = 'https://ghuuab.deta.dev/bookings'
-    res = requests.get(url_bookings)
-    bookings = res.json()
-    # st.json(res.json())
-    df_bookings = pd.DataFrame(bookings)
-    df_bookings.append(update=st.button('update'))
-    st.write('### 予約一覧')
-    st.table(df_bookings)
-
-    users_id = {}
-    for user in users:
-        users_id[user['user_id']] = user['username']
-
-    rooms_id = {}
-    for room in rooms:
-        rooms_id[room['room_id']] = {
-            'room_name': room['room_name'],
-            'capacity': room['capacity'],
-        }
-
-    # IDを各値に変更
-    to_username = lambda x: users_id[x]
-    to_room_name = lambda x: rooms_id[x]['room_name']
-    to_datetime = lambda x: datetime.datetime.fromisoformat(x).strftime('%Y/%m/%d %H:%M')
-
-    # # 特定の列に適用
-    # df_bookings['user_id'] = df_bookings['user_id'].map(to_username)
-    # df_bookings['room_id'] = df_bookings['room_id'].map(to_room_name)
-    # df_bookings['start_datetime'] = df_bookings['start_datetime'].map(to_datetime)
-    # df_bookings['end_datetime'] = df_bookings['end_datetime'].map(to_datetime)
-
-    df_bookings = df_bookings.rename(columns={
-        'user_id': '予約者名',
-        'room_id': '会議室名',
-        'booked_num': '予約人数',
-        'start_datetime': '開始時刻',
-        'end_datetime': '終了時刻',
-        'booking_id': '予約番号'
-    })
-    st.write('### 予約一覧')
-    st.table(df_bookings)
-
-
-    with st.form(key='booking'):
-        username: str = st.selectbox('予約者名', list(users_name.keys()))
-        room_name: str = st.selectbox('会議室名', list(rooms_name.keys()))
-        booked_num: int = st.number_input('予約人数', step=1, min_value=1)
-        date = st.date_input('日付: ', min_value=datetime.date.today())
-        start_time = st.time_input('開始時刻: ', value=datetime.time(hour=9, minute=0))
-        end_time = st.time_input('終了時刻: ', value=datetime.time(hour=20, minute=0))
-        submit_button = st.form_submit_button(label='予約登録')
-
-    if submit_button:
-        user_id: int = users_name[username]
-        room_id: int = rooms_name[room_name]['room_id']
-        capacity: int = rooms_name[room_name]['capacity']
-
-        data = {
-            'user_id': user_id,
-            'room_id': room_id,
-            'booked_num': booked_num,
-            'start_datetime': datetime.datetime(
-                year=date.year,
-                month=date.month,
-                day=date.day,
-                hour=start_time.hour,
-                minute=start_time.minute
-            ).isoformat(),
-            'end_datetime': datetime.datetime(
-                year=date.year,
-                month=date.month,
-                day=date.day,
-                hour=end_time.hour,
-                minute=end_time.minute
-            ).isoformat()
-        }
-        # 定員より多い予約人数の場合
-        if booked_num > capacity:
-            st.error(f'{room_name}の定員は、{capacity}名です。{capacity}名以下の予約人数のみ受け付けております。')
-        # 開始時刻 >= 終了時刻
-        elif start_time >= end_time:
-            st.error('開始時刻が終了時刻を越えています')
-        elif start_time < datetime.time(hour=9, minute=0, second=0) or end_time > datetime.time(hour=20, minute=0, second=0):
-            st.error('利用時間は9:00~20:00になります。')
-        else:
-            # 会議室予約
-            url = 'http://127.0.0.1:8000/bookings'
-            res = requests.post(
-                url,
-                data=json.dumps(data)
-            )
-            if res.status_code == 200:
-                st.success('予約完了しました')            
-            elif res.status_code == 404 and res.json()['detail'] == 'Already booked' :
-                st.error('指定の時間にはすでに予約が入っています。')
-
-
-
-
